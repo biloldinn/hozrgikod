@@ -1,0 +1,15 @@
+# Ignore files
+__pycache__/
+*.pyc
+*.pyo
+*.db
+.env
+.vscode/
+*.bat
+deploy_tool.py
+verify_deploy.py
+check_*.py
+delete_webhook.py
+set_webhook.py
+api/
+vercel.json
