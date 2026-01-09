@@ -34,11 +34,16 @@ def get_cancel_keyboard():
 
 # --- HELPER FUNCTIONS ---
 def get_sender_info(message):
+    """Xabar yuborgan shaxs haqida ma'lumot tayyorlaydi (profil linki bilan)"""
     user = message.from_user
     if not user:
         return "📢 <b>Kanal xabari</b>\n"
+    
     name = f"{user.first_name or ''} {user.last_name or ''}".strip() or "Noma'lum"
-    info = f"👤 <b>Foydalanuvchi:</b> {name}\n"
+    # Profilga havola: <a href="tg://user?id=ID">Ism</a>
+    profile_link = f'<a href="tg://user?id={user.id}">{name}</a>'
+    
+    info = f"👤 <b>Foydalanuvchi:</b> {profile_link}\n"
     if user.username:
         info += f"🔗 <b>Username:</b> @{user.username}\n"
     info += f"🆔 <b>ID:</b> <code>{user.id}</code>\n"
@@ -70,15 +75,15 @@ def forward_logic(message):
         
         logger.info(f"✅ Xabar ko'chirildi: {current_chat}")
 
-        # --- YANGI: Xabarni o'chirish logikasi ---
+        # --- Xabarni o'chirish logikasi ---
+        # Bot bu kanalda Admin bo'lishi va 'Delete messages' ruxsati bo'lishi shart
         try:
             bot.delete_message(message.chat.id, message.message_id)
             logger.info(f"🗑 Xabar manba kanaldan o'chirildi: {message.message_id}")
         except Exception as del_e:
-            logger.warning(f"⚠️ Xabarni o'chirishda xatolik (Ruxsat bormi?): {del_e}")
+            logger.warning(f"⚠️ Xabarni o'chirishda xatolik (Ruxsat yoki boshqa muammo): {del_e}")
 
     except Exception as e:
-
         logger.error(f"❌ Forward xatosi: {e}")
 
 # --- TAXI BOOKING FLOW ---
