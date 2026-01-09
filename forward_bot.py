@@ -8,6 +8,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from telebot import types
 
 # --- KONFIGURATSIYA ---
+# Version: 2.1.0 (Final Stable - Conflict Resolved)
 TOKEN = "8417577678:AAH6RXAvwsaEuhKSCq6AsC83tG5QBtd0aJk"
 SOURCE_CHANNEL = "@TOSHKENTANGRENTAKSI"
 DESTINATION_CHANNEL = "@Uski_kur"  # Zakazlar va forwardlar shu yerga tushadi
