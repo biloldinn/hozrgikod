@@ -292,7 +292,7 @@ def keep_awake():
 
 # --- ADMIN PANEL ---
 PROMO_ENABLED = True
-ADMIN_IDS = [7901048491, 123456789] # Sizning ID va boshqa adminlar
+ADMIN_IDS = [6762465157] # Sizning ID va boshqa adminlar
 
 def get_admin_markup():
     markup = types.InlineKeyboardMarkup()
@@ -300,12 +300,17 @@ def get_admin_markup():
     markup.add(types.InlineKeyboardButton(f"Reklama holati: {status}", callback_data="toggle_promo"))
     return markup
 
+@bot.message_handler(commands=['id'])
+def show_id(message):
+    bot.send_message(message.chat.id, f"🆔 <b>Sizning ID:</b> <code>{message.from_user.id}</code>", parse_mode='HTML')
+
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
-    if message.from_user.id in ADMIN_IDS:
+    user_id = message.from_user.id
+    if user_id in ADMIN_IDS:
         bot.send_message(message.chat.id, "💎 <b>ADMIN PANEL</b>\n\nPastdagi tugma orqali reklamani boshqaring:", parse_mode='HTML', reply_markup=get_admin_markup())
     else:
-        bot.send_message(message.chat.id, "❌ Siz admin emassiz.")
+        bot.send_message(message.chat.id, f"❌ <b>Ruxsat yo'q!</b>\n\nSiz admin emassiz. Sizning ID: <code>{user_id}</code>\nUshbu ID ni kodga qo'shish kerak.", parse_mode='HTML')
 
 @bot.callback_query_handler(func=lambda call: call.data == "toggle_promo")
 def toggle_promo_callback(call):
@@ -324,7 +329,7 @@ def periodic_promo():
     """Har 3 daqiqada kanalga chiroyli reklama postini chiqaradi"""
     while True:
         try:
-            time.sleep(180) # 3 daqiqa
+            time.sleep(600) # 10 daqiqa
             if not PROMO_ENABLED:
                 continue
                 
