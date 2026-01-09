@@ -4,6 +4,7 @@ import time
 import urllib.request
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from telebot import types
 
 # --- KONFIGURATSIYA ---
 TOKEN = "8417577678:AAH6RXAvwsaEuhKSCq6AsC83tG5QBtd0aJk"
@@ -12,6 +13,10 @@ DESTINATION_CHANNEL = "@Uski_kur"
 
 bot = telebot.TeleBot(TOKEN)
 
+# Foydalanuvchi holatlarini saqlash (Taksi zakaz qilish uchun)
+user_states = {}
+
+# --- HELPER FUNCTIONS ---
 def get_sender_info(message):
     user = message.from_user
     if not user:
@@ -23,11 +28,13 @@ def get_sender_info(message):
     info += f"🆔 <b>ID:</b> <code>{user.id}</code>\n"
     return info
 
+# --- FORWARD LOGIC ---
 def forward_logic(message):
     try:
         current_chat = f"@{message.chat.username}" if message.chat.username else str(message.chat.id)
         if current_chat.lower() != SOURCE_CHANNEL.lower():
             return
+
         header = get_sender_info(message)
         separator = "─" * 15 + "\n"
         full_header = header + separator
@@ -46,61 +53,101 @@ def forward_logic(message):
             bot.send_document(DESTINATION_CHANNEL, message.document.file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
         else:
             bot.send_message(DESTINATION_CHANNEL, full_header + f"📎 <b>Xabar turi:</b> {message.content_type}")
-        print(f"✅ Xabar muvaffaqiyatli ko'chirildi: {current_chat}")
+        print(f"✅ Ko'chirildi: {current_chat}")
     except Exception as e:
-        print(f"❌ Xatolik yuz berdi: {e}")
+        print(f"❌ Forward xatosi: {e}")
 
-@bot.channel_post_handler(func=lambda m: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'voice'])
-def handle_channel_posts(message):
-    forward_logic(message)
+# --- TAXI BOOKING FLOW ---
+@bot.message_handler(func=lambda m: m.text == "🚖 Taksi Chaqirish")
+def taxi_start(message):
+    user_id = message.from_user.id
+    user_states[user_id] = {'step': 'WAIT_NAME', 'data': {}}
+    bot.send_message(user_id, "🚖 <b>Taksi zakaz qilish boshlandi.</b>\n\nIsmingizni kiriting:", parse_mode='HTML', reply_markup=types.ReplyKeyboardRemove())
 
-@bot.message_handler(func=lambda m: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'voice'])
-def handle_group_messages(message):
-    forward_logic(message)
+def handle_taxi_steps(message):
+    user_id = message.from_user.id
+    state = user_states.get(user_id)
+    if not state: return False
+
+    step = state['step']
+    
+    if step == 'WAIT_NAME':
+        state['data']['name'] = message.text
+        state['step'] = 'WAIT_PHONE'
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        markup.add(types.KeyboardButton("📞 Telefon yuborish", request_contact=True))
+        bot.send_message(user_id, "Telefon raqamingizni yuboring:", reply_markup=markup)
+        return True
+
+    elif step == 'WAIT_PHONE':
+        state['data']['phone'] = message.contact.phone_number if message.content_type == 'contact' else message.text
+        state['step'] = 'WAIT_DEST'
+        bot.send_message(user_id, "Qayerga borasiz?", reply_markup=types.ReplyKeyboardRemove())
+        return True
+
+    elif step == 'WAIT_DEST':
+        state['data']['dest'] = message.text
+        state['step'] = 'WAIT_LOC'
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        markup.add(types.KeyboardButton("📍 Lokatsiyani yuborish", request_location=True))
+        bot.send_message(user_id, "Lokatsiyangizni yuboring (tugmani bosing):", reply_markup=markup)
+        return True
+
+    elif step == 'WAIT_LOC':
+        if message.content_type == 'location':
+            data = state['data']
+            order_text = (
+                f"🚖 <b>YANGI TAKSI ZAKAZI!</b>\n\n"
+                f"👤 <b>Ism:</b> {data['name']}\n"
+                f"📞 <b>Tel:</b> {data['phone']}\n"
+                f"📍 <b>Manzil:</b> {data['dest']}\n"
+                f"🆔 <b>ID:</b> {user_id}"
+            )
+            bot.send_message(DESTINATION_CHANNEL, order_text, parse_mode='HTML')
+            bot.send_location(DESTINATION_CHANNEL, message.location.latitude, message.location.longitude)
+            bot.send_message(user_id, "✅ <b>Zakazingiz qabul qilindi!</b>", parse_mode='HTML', reply_markup=get_main_keyboard())
+            del user_states[user_id]
+            return True
+    return False
+
+def get_main_keyboard():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(types.KeyboardButton("🚖 Taksi Chaqirish"))
+    return markup
 
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    bot.reply_to(message, "✅ <b>Bot ishlamoqda!</b>\n\nMen @TOSHKENTANGRENTAKSI kanalidan xabarlarni @Uski_kur guruhiga yashirincha ko'chirib beraman.", parse_mode='HTML')
+    bot.send_message(message.chat.id, "✅ <b>Bot ishlamoqda!</b>", parse_mode='HTML', reply_markup=get_main_keyboard())
 
+@bot.channel_post_handler(func=lambda m: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'voice'])
+def channel_msg(message):
+    forward_logic(message)
+
+@bot.message_handler(content_types=['text', 'contact', 'location'])
+def group_msg(message):
+    if not handle_taxi_steps(message):
+        forward_logic(message)
+
+# --- RENDER SERVER & KEEP AWAKE ---
 class HealthCheck(BaseHTTPRequestHandler):
     def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(b'OK')
+        self.send_response(200); self.end_headers(); self.wfile.write(b'OK')
     def log_message(self, format, *args): pass
 
-def start_server():
-    port = int(os.environ.get('PORT', 10000))
-    httpd = HTTPServer(('0.0.0.0', port), HealthCheck)
-    print(f"🌐 Server port {port} da ishlamoqda...")
-    httpd.serve_forever()
-
 def keep_awake():
-    """Pings the bot's own URL every 10 minutes to prevent Render from sleeping"""
     url = os.environ.get('RENDER_EXTERNAL_URL')
-    if not url:
-        print("⚠️ RENDER_EXTERNAL_URL topilmadi. Avtomatik uyg'oq tutish ishlamasligi mumkin.")
-        return
-    
-    print(f"🚀 Avtomatik uyg'oq tutish boshlandi: {url}")
+    if not url: return
     while True:
         try:
-            time.sleep(600)  # 10 daqiqa kutish
-            with urllib.request.urlopen(url) as response:
-                response.read()
-            print(f"⏰ Self-ping muvaffaqiyatli: {time.ctime()}")
-        except Exception as e:
-            print(f"❌ Self-ping xatosi: {e}")
+            time.sleep(600)
+            urllib.request.urlopen(url).read()
+            print(f"⏰ Ping OK: {time.ctime()}")
+        except: pass
 
 if __name__ == "__main__":
     if os.environ.get('PORT'):
-        Thread(target=start_server, daemon=True).start()
-    
-    # Render'da bo'lsak, self-ping ni boshlaymiz
-    if os.environ.get('RENDER') or os.environ.get('RENDER_EXTERNAL_URL'):
+        Thread(target=lambda: HTTPServer(('0.0.0.0', int(os.environ.get('PORT', 10000))), HealthCheck).serve_forever(), daemon=True).start()
+    if os.environ.get('RENDER_EXTERNAL_URL'):
         Thread(target=keep_awake, daemon=True).start()
-    
-    print("🤖 Bot xabarlarni kutmoqda...")
+    print("🤖 Bot tayyor...")
     bot.infinity_polling()
-
