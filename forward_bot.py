@@ -8,7 +8,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from telebot import types
 
 # --- KONFIGURATSIYA ---
-TOKEN = "8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ"
+TOKEN = "8417577678:AAH6RXAvwsaEuhKSCq6AsC83tG5QBtd0aJk"
 SOURCE_CHANNEL = "@TOSHKENTANGRENTAKSI"
 DESTINATION_CHANNEL = "@Uski_kur"  # Zakazlar va forwardlar shu yerga tushadi
 
@@ -249,22 +249,12 @@ def welcome(message):
     
     bot_username = bot.get_me().username
     welcome_text = (
-        "👋 ASSALOMU ALAYKUM, HURMATLI GURUH A’ZOLARI!\n\n"
-        "🚕 ANGREN — TOSHKENT VA VILOYATLAR YO‘NALISHIDA TAKSI XIZMATI FAOL!\n"
-        "💬 BU GURUHDA BEMALOL YOZISHINGIZ, SAVOL BERISHINGIZ VA MA’LUMOT OLISHINGIZ MUMKIN!\n"
-        "⏱️ BUYURTMALAR BOT ORQALI 5 DAQIQA ICHIDA SIZ BILAN BOG‘LANADI.\n"
-        "✅ ISHONCHLI VA QULAY XIZMAT!\n"
-        "📲 BOT ORQALI ZAKAZ BERISH:\n"
-        f"👉 @{bot_username}\n\n"
-        "🙏 BIZNI TANLAGANINGIZDAN MAMNUN BO‘LAMIZ!\n\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        "👋 ПРИВЕТСТВУЕМ ВАС, УВАЖАЕМЫЕ УЧАСТНИКИ ГРУППЫ!\n\n"
-        "🚕 АНГРЕН — НАПРАВЛЕНИЕ ТОШКЕНТ, ТАКСИ СЕРВИС РАБОТАЕТ!\n"
-        "💬 В ЭТОЙ ГРУППЕ МОЖНО СВОБОДНО ПИСАТЬ, ЗАДАВАТЬ ВОПРОСЫ И ПОЛУЧАТЬ ИНФОРМАЦИЮ!\n"
-        "⏱️ ЗАКАЗЫ ЧЕРЕЗ БОТ ПРИНИМАЮТСЯ И В ТЕЧЕНИЕ 10 МИНУТ С ВАМИ СВЯЖУТСЯ.\n"
-        "✅ НАДЁЖНО И УДОБНО!\n"
-        "📲 ДЛЯ ЗАКАЗА ИСПОЛЬЗУЙТЕ БОТ:\n"
-        f"👉 @{bot_username}"
+        f"🚖 <b>ANGREN - TOSHKENT TAXI & POCHTA</b> 📦\n\n"
+        f"⏱ 5 daqiqada aloqaga chiqamiz!\n"
+        f"📲 Buyurtma berish: @{bot_username}\n"
+        f"➖➖➖➖➖➖➖➖➖➖\n"
+        f"⏱ Свяжемся за 5 минут!\n"
+        f"📲 Заказать: @{bot_username}"
     )
     bot.send_message(message.chat.id, welcome_text, parse_mode='HTML', reply_markup=get_main_keyboard())
 
@@ -386,7 +376,7 @@ def toggle_promo_callback(call):
 
 # --- NEW: PERIODIC PROMO POST ---
 def periodic_promo():
-    """Har 15 daqiqada kanalga ixcham reklama postini chiqaradi"""
+    """Har 15 daqiqada kanalga batafsil reklama postini chiqaradi"""
     while True:
         try:
             time.sleep(900) # 15 daqiqa (900 soniya)
@@ -395,15 +385,25 @@ def periodic_promo():
                 
             bot_username = bot.get_me().username
             promo_text = (
-                f"🚖 <b>ANGREN - TOSHKENT TAXI & POCHTA</b> 📦\n\n"
-                f"⏱ 5 daqiqada aloqaga chiqamiz!\n"
-                f"📲 Buyurtma berish: @{bot_username}\n"
-                f"➖➖➖➖➖➖➖➖➖➖\n"
-                f"⏱ Свяжемся за 5 минут!\n"
-                f"📲 Заказать: @{bot_username}"
+                "👋 ASSALOMU ALAYKUM, HURMATLI GURUH A’ZOLARI!\n\n"
+                "🚕 ANGREN — TOSHKENT VA VILOYATLAR YO‘NALISHIDA TAKSI XIZMATI FAOL!\n"
+                "💬 BU GURUHDA BEMALOL YOZISHINGIZ, SAVOL BERISHINGIZ VA MA’LUMOT OLISHINGIZ MUNKIN!\n"
+                "⏱️ BUYURTMALAR BOT ORQALI 5 DAQIQA ICHIDA SIZ BILAN BOG‘LANADI.\n"
+                "✅ ISHONCHLI VA QULAY XIZMAT!\n"
+                "📲 BOT ORQALI ZAKAZ BERISH:\n"
+                f"👉 @{bot_username}\n\n"
+                "🙏 BIZNI TANLAGANINGIZDAN MAMNUN BO‘LAMIZ!\n\n"
+                "━━━━━━━━━━━━━━━━━━━━\n\n"
+                "👋 ПРИВЕТСТВУЕМ ВАС, УВАЖАЕМЫЕ УЧАСТНИКИ ГРУППЫ!\n\n"
+                "🚕 АНГРЕН — НАПРАВЛЕНИЕ ТОШКЕНТ, ТАКСИ СЕРВИС РАБОТАЕТ!\n"
+                "💬 В ЭТОЙ ГРУППЕ МОЖНО СВОБОДНО ПИСАТЬ, ЗАДАВАТЬ ВОПРОСЫ И ПОЛУЧАТЬ ИНФОРМАЦИЮ!\n"
+                "⏱️ ЗАКАЗЫ ЧЕРЕЗ БОТ ПРИНИМАЮТСЯ И В ТЕЧЕНИЕ 10 МИНУТ С ВАМИ СВЯЖУТСЯ.\n"
+                "✅ НАДЁЖНО И УДОБНО!\n"
+                "📲 ДЛЯ ЗАКАЗА ИСПОЛЬЗУЙТЕ БОТ:\n"
+                f"👉 @{bot_username}"
             )
             bot.send_message(SOURCE_CHANNEL, promo_text, parse_mode='HTML')
-            logger.info("📢 Ixcham promo post yuborildi.")
+            logger.info("📢 Batafsil promo post yuborildi.")
         except Exception as e:
             logger.error(f"Promo error: {e}")
 
