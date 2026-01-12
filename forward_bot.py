@@ -210,8 +210,14 @@ def handle_taxi_steps(message):
                 )
                 
                 # Guruhga yuborish
-                bot.send_message(DESTINATION_CHANNEL, order_text, parse_mode='HTML')
-                bot.send_location(DESTINATION_CHANNEL, message.location.latitude, message.location.longitude)
+                logger.info(f"📤 {order_type} buyurtmasi yuborilmoqda: {DESTINATION_CHANNEL}")
+                try:
+                    bot.send_message(DESTINATION_CHANNEL, order_text, parse_mode='HTML')
+                    bot.send_location(DESTINATION_CHANNEL, message.location.latitude, message.location.longitude)
+                    logger.info(f"✅ {order_type} buyurtmasi muvaffaqiyatli yuborildi.")
+                except Exception as send_e:
+                    logger.error(f"❌ {order_type} buyurtmasini yuborishda xato: {send_e}")
+                    bot.send_message(user_id, "❌ Uzr, texnik sabablarga ko'ra buyurtmani guruhga yuborib bo'lmadi. Admin bilan bog'laning.")
                 
                 # Foydalanuvchiga tasdiqlash
                 bot.send_message(user_id, "✅ <b>Buyurtmangiz qabul qilindi!</b>\nTez orada haydovchilarimiz aloqaga chiqishadi. Raxmat!", parse_mode='HTML', reply_markup=get_main_keyboard())
@@ -316,6 +322,20 @@ def admin_panel(message):
         bot.send_message(message.chat.id, "💎 <b>ADMIN PANEL</b>\n\nPastdagi tugma orqali reklamani boshqaring:", parse_mode='HTML', reply_markup=get_admin_markup())
     else:
         bot.send_message(message.chat.id, f"❌ <b>Ruxsat yo'q!</b>\n\nSiz admin emassiz. Sizning ID: <code>{user_id}</code>\nUshbu ID ni kodga qo'shish kerak.", parse_mode='HTML')
+
+@bot.message_handler(commands=['status'])
+def check_status(message):
+    user_id = message.from_user.id
+    if user_id in ADMIN_IDS:
+        status_text = (
+            f"📊 <b>BOT HOLATI</b>\n\n"
+            f"📢 <b>Manba kanal:</b> {SOURCE_CHANNEL}\n"
+            f"🎯 <b>Maqsad kanal:</b> {DESTINATION_CHANNEL}\n"
+            f"🔄 <b>Reklama:</b> {'Yoqiq' if PROMO_ENABLED else 'Ochirilgan'}\n"
+            f"🆔 <b>Sizning ID:</b> <code>{user_id}</code>\n"
+            f"ℹ️ <i>Bot 5 daqiqalik reklama rejimida ishlamoqda.</i>"
+        )
+        bot.send_message(message.chat.id, status_text, parse_mode='HTML')
 
 @bot.callback_query_handler(func=lambda call: call.data == "toggle_promo")
 def toggle_promo_callback(call):
