@@ -245,7 +245,17 @@ def handle_taxi_steps(message):
 def welcome(message):
     user_id = message.from_user.id
     if user_id in user_states: del user_states[user_id]
-    bot.send_message(message.chat.id, "✅ <b>Bot ishlamoqda!</b>\n\nTaksi chaqirish uchun tugmani bosing.", parse_mode='HTML', reply_markup=get_main_keyboard())
+    
+    bot_username = bot.get_me().username
+    welcome_text = (
+        f"🚖 <b>ANGREN - TOSHKENT TAXI & POCHTA</b> 📦\n\n"
+        f"⏱ 5 daqiqada aloqaga chiqamiz!\n"
+        f"📲 Buyurtma berish: @{bot_username}\n"
+        f"➖➖➖➖➖➖➖➖➖➖\n"
+        f"⏱ Свяжемся за 5 минут!\n"
+        f"📲 Заказать: @{bot_username}"
+    )
+    bot.send_message(message.chat.id, welcome_text, parse_mode='HTML', reply_markup=get_main_keyboard())
 
 @bot.channel_post_handler(func=lambda m: True, content_types=['text', 'photo', 'video', 'document', 'audio', 'voice'])
 def channel_msg(message):
