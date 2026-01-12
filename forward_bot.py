@@ -137,9 +137,14 @@ def verify_join(call):
     if check_membership(user_id):
         bot.answer_callback_query(call.id, "Tabriklaymiz! Endi zakaz berishingiz mumkin.")
         bot.delete_message(call.message.chat.id, call.message.message_id)
+        
+        # Xizmat turini saqlab qolish
+        current_data = user_states.get(user_id, {}).get('data', {})
+        service_type = current_data.get('type', 'TAKSI')
+        
         # Bookingni boshlash
-        user_states[user_id] = {'step': 'WAIT_NAME', 'data': {}}
-        bot.send_message(user_id, "🚖 <b>Taksi zakaz qilish boshlandi.</b>\n\nIsmingizni kiriting:", parse_mode='HTML', reply_markup=get_cancel_keyboard())
+        user_states[user_id] = {'step': 'WAIT_NAME', 'data': {'type': service_type}}
+        bot.send_message(user_id, f"✅ <b>{service_type} xizmati boshlandi.</b>\n\nIsmingizni kiriting:", parse_mode='HTML', reply_markup=get_cancel_keyboard())
     else:
         bot.answer_callback_query(call.id, "Siz hali kanalga a'zo bo'lmagansiz! ❌", show_alert=True)
 
@@ -327,10 +332,20 @@ def admin_panel(message):
 def check_status(message):
     user_id = message.from_user.id
     if user_id in ADMIN_IDS:
+        # Kanal ruxsatini tekshirish
+        perm_status = "Tekshirilmoqda..."
+        try:
+            test_msg = bot.send_message(DESTINATION_CHANNEL, "🤖 Bot status tekshiruvi...")
+            bot.delete_message(DESTINATION_CHANNEL, test_msg.message_id)
+            perm_status = "✅ OK (Bot Admin)"
+        except Exception as e:
+            perm_status = f"❌ XATO (Admin emas yoki ruxsat yo'q: {e})"
+
         status_text = (
             f"📊 <b>BOT HOLATI</b>\n\n"
             f"📢 <b>Manba kanal:</b> {SOURCE_CHANNEL}\n"
             f"🎯 <b>Maqsad kanal:</b> {DESTINATION_CHANNEL}\n"
+            f"🔑 <b>Kanal ruxsati:</b> {perm_status}\n"
             f"🔄 <b>Reklama:</b> {'Yoqiq' if PROMO_ENABLED else 'Ochirilgan'}\n"
             f"🆔 <b>Sizning ID:</b> <code>{user_id}</code>\n"
             f"ℹ️ <i>Bot 5 daqiqalik reklama rejimida ishlamoqda.</i>"
@@ -351,34 +366,24 @@ def toggle_promo_callback(call):
 
 # --- NEW: PERIODIC PROMO POST ---
 def periodic_promo():
-    """Har 5 daqiqada kanalga chiroyli reklama postini chiqaradi"""
+    """Har 15 daqiqada kanalga ixcham reklama postini chiqaradi"""
     while True:
         try:
-            time.sleep(300) # 5 daqiqa (300 soniya)
+            time.sleep(900) # 15 daqiqa (900 soniya)
             if not PROMO_ENABLED:
                 continue
                 
             bot_username = bot.get_me().username
             promo_text = (
-                "👋 ASSALOMU ALAYKUM, HURMATLI GURUH A’ZOLARI!\n\n"
-                "🚕 ANGREN — TOSHKENT VA VILOYATLAR YO‘NALISHIDA TAKSI XIZMATI FAOL!\n"
-                "💬 BU GURUHDA BEMALOL YOZISHINGIZ, SAVOL BERISHINGIZ VA MA’LUMOT OLISHINGIZ MUMKIN!\n"
-                "⏱️ BUYURTMALAR BOT ORQALI 5 DAQIQA ICHIDA SIZ BILAN BOG‘LANADI.\n"
-                "✅ ISHONCHLI VA QULAY XIZMAT!\n"
-                "📲 BOT ORQALI ZAKAZ BERISH:\n"
-                f"👉 @{bot_username}\n\n"
-                "🙏 BIZNI TANLAGANINGIZDAN MAMNUN BO‘LAMIZ!\n\n"
-                "━━━━━━━━━━━━━━━━━━━━\n\n"
-                "👋 ПРИВЕТСТВУЕМ ВАС, УВАЖАЕМЫЕ УЧАСТНИКИ ГРУППЫ!\n\n"
-                "🚕 АНГРЕН — НАПРАВЛЕНИЕ ТОШКЕНТ, ТАКСИ СЕРВИС РАБОТАЕТ!\n"
-                "💬 В ЭТОЙ ГРУППЕ МОЖНО СВОБОДНО ПИСАТЬ, ЗАДАВАТЬ ВОПРОСЫ И ПОЛУЧАТЬ ИНФОРМАЦИЮ!\n"
-                "⏱️ ЗАКАЗЫ ЧЕРЕЗ БОТ ПРИНИМАЮТСЯ И В ТЕЧЕНИЕ 5 МИНУТ С ВАМИ СВЯЖУТСЯ.\n"
-                "✅ НАДЁЖНО И УДОБНО!\n"
-                "📲 ДЛЯ ЗАКАЗА ИСПОЛЬЗУЙТЕ БОТ:\n"
-                f"👉 @{bot_username}"
+                f"🚖 <b>ANGREN - TOSHKENT TAXI & POCHTA</b> 📦\n\n"
+                f"⏱ 5 daqiqada aloqaga chiqamiz!\n"
+                f"📲 Buyurtma berish: @{bot_username}\n"
+                f"➖➖➖➖➖➖➖➖➖➖\n"
+                f"⏱ Свяжемся за 5 минут!\n"
+                f"📲 Заказать: @{bot_username}"
             )
             bot.send_message(SOURCE_CHANNEL, promo_text, parse_mode='HTML')
-            logger.info("📢 Promo post kanalga yuborildi.")
+            logger.info("📢 Ixcham promo post yuborildi.")
         except Exception as e:
             logger.error(f"Promo error: {e}")
 
