@@ -210,6 +210,7 @@ def handle_taxi_steps(message):
                     f"━━━━━━━━━━━━━━━━━━━\n"
                     f"🕒 <b>Vaqt:</b> <code>{time.strftime('%H:%M')}</code>\n"
                     f"🆔 <b>Mijoz ID:</b> <code>{user_id}</code>\n"
+                    f"🔗 <b>Profil:</b> <a href='tg://user?id={user_id}'>Xabar yozish</a>\n"
                     f"🚀 <i>{order_type.lower().capitalize()} buyurtmangiz qabul qilindi!</i>"
                 )
                 
