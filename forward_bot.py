@@ -331,17 +331,23 @@ class HealthCheck(BaseHTTPRequestHandler):
     def log_message(self, format, *args): pass
 
 def keep_awake():
-    url = os.environ.get('RENDER_EXTERNAL_URL')
+    # Render, Koyeb yoki generic URL'larni tekshirish
+    url = os.environ.get('RENDER_EXTERNAL_URL') or os.environ.get('KOYEB_PUBLIC_URL') or os.environ.get('APP_URL')
+    
     if not url:
-        logger.warning("⚠️ RENDER_EXTERNAL_URL topilmadi.")
+        logger.warning("⚠️ Hech qanday EXTERNAL URL topilmadi (Render/Koyeb/App). Self-ping ishlamaydi.")
         return
+        
+    logger.info(f"✅ Self-ping URL aniqlandi: {url}")
+    
     while True:
         try:
-            time.sleep(600)
+            time.sleep(300) # 5 minut (har ehtimolga qarshi tezroq ping)
             urllib.request.urlopen(url).read()
             logger.info(f"⏰ Self-ping OK: {time.ctime()}")
         except Exception as e:
             logger.error(f"❌ Self-ping error: {e}")
+            time.sleep(60) # Xato bo'lsa biroz kutish
 
 # --- ADMIN PANEL ---
 PROMO_ENABLED = True
