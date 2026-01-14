@@ -1,14 +1,13 @@
 services:
   - type: web
-    name: telegram-forward-bot
+    name: hozrgikod-bot
     runtime: python
+    repo: https://github.com/biloldinn/hozrgikod
+    plan: free
+    region: oregon
     buildCommand: pip install -r requirements.txt
     startCommand: python forward_bot.py
+    autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: RENDER_EXTERNAL_URL
-        fromService:
-          type: web
-          name: telegram-forward-bot
-          property: host
+        value: 3.10.0
