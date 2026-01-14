@@ -350,7 +350,7 @@ def keep_awake():
             time.sleep(60) # Xato bo'lsa biroz kutish
 
 # --- ADMIN PANEL ---
-PROMO_ENABLED = True
+PROMO_ENABLED = False # Default holatda O'CHIK
 PROMO_INTERVAL = 180 # Boshlang'ich 3 daqiqa
 ADMIN_IDS = [6762465157] # Sizning ID va boshqa adminlar
 
