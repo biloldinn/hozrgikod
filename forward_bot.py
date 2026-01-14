@@ -11,7 +11,7 @@ from telebot import types
 # --- KONFIGURATSIYA ---
 TOKEN = "8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ"
 SOURCE_CHANNEL = "@TOSHKENTANGRENTAKSI"
-DESTINATION_CHANNEL = "@Uski_kur"  # Zakazlar va forwardlar shu yerga tushadi
+DESTINATION_CHANNEL = "@Uski_ku"  # Zakazlar va forwardlar shu yerga tushadi
 
 bot = telebot.TeleBot(TOKEN)
 
