@@ -345,12 +345,25 @@ def keep_awake():
 
 # --- ADMIN PANEL ---
 PROMO_ENABLED = True
+PROMO_INTERVAL = 180 # Boshlang'ich 3 daqiqa
 ADMIN_IDS = [6762465157] # Sizning ID va boshqa adminlar
 
 def get_admin_markup():
-    markup = types.InlineKeyboardMarkup()
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    # Toggle button
     status = "✅ YONIQ" if PROMO_ENABLED else "❌ O'CHIK"
     markup.add(types.InlineKeyboardButton(f"Reklama holati: {status}", callback_data="toggle_promo"))
+    
+    # Interval buttons
+    btn_3m = types.InlineKeyboardButton("⏱ 3m", callback_data="set_interval_180")
+    btn_10m = types.InlineKeyboardButton("⏱ 10m", callback_data="set_interval_600")
+    btn_30m = types.InlineKeyboardButton("⏱ 30m", callback_data="set_interval_1800")
+    btn_1h = types.InlineKeyboardButton("⏱ 1h", callback_data="set_interval_3600")
+    
+    current_min = PROMO_INTERVAL // 60
+    markup.add(btn_3m, btn_10m, btn_30m, btn_1h)
+    markup.add(types.InlineKeyboardButton(f"Hozirgi vaqt: {current_min} daqiqa", callback_data="ignore"))
+    
     return markup
 
 @bot.message_handler(commands=['id'])
@@ -361,9 +374,9 @@ def show_id(message):
 def admin_panel(message):
     user_id = message.from_user.id
     if user_id in ADMIN_IDS:
-        bot.send_message(message.chat.id, "💎 <b>ADMIN PANEL</b>\n\nPastdagi tugma orqali reklamani boshqaring:", parse_mode='HTML', reply_markup=get_admin_markup())
+        bot.send_message(message.chat.id, "💎 <b>ADMIN PANEL</b>\n\nReklamani boshqarish:", parse_mode='HTML', reply_markup=get_admin_markup())
     else:
-        bot.send_message(message.chat.id, f"❌ <b>Ruxsat yo'q!</b>\n\nSiz admin emassiz. Sizning ID: <code>{user_id}</code>\nUshbu ID ni kodga qo'shish kerak.", parse_mode='HTML')
+        bot.send_message(message.chat.id, f"❌ <b>Ruxsat yo'q!</b>\n\nSiz admin emassiz. Sizning ID: <code>{user_id}</code>", parse_mode='HTML')
 
 @bot.message_handler(commands=['status'])
 def check_status(message):
@@ -384,8 +397,8 @@ def check_status(message):
             f"🎯 <b>Maqsad kanal:</b> {DESTINATION_CHANNEL}\n"
             f"🔑 <b>Kanal ruxsati:</b> {perm_status}\n"
             f"🔄 <b>Reklama:</b> {'Yoqiq' if PROMO_ENABLED else 'Ochirilgan'}\n"
-            f"🆔 <b>Sizning ID:</b> <code>{user_id}</code>\n"
-            f"ℹ️ <i>Bot 5 daqiqalik reklama rejimida ishlamoqda.</i>"
+            f"⏱ <b>Interval:</b> {PROMO_INTERVAL // 60} daqiqa\n"
+            f"🆔 <b>Sizning ID:</b> <code>{user_id}</code>"
         )
         bot.send_message(message.chat.id, status_text, parse_mode='HTML')
 
@@ -401,12 +414,31 @@ def toggle_promo_callback(call):
     bot.answer_callback_query(call.id, f"Reklama {status}")
     bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=get_admin_markup())
 
+@bot.callback_query_handler(func=lambda call: call.data.startswith("set_interval_"))
+def set_interval_callback(call):
+    global PROMO_INTERVAL
+    if call.from_user.id not in ADMIN_IDS:
+        bot.answer_callback_query(call.id, "Ruxsat yo'q!", show_alert=True)
+        return
+        
+    try:
+        new_interval = int(call.data.split("_")[2])
+        PROMO_INTERVAL = new_interval
+        bot.answer_callback_query(call.id, f"Vaqt o'zgartirildi: {new_interval // 60} daqiqa")
+        bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=get_admin_markup())
+    except Exception as e:
+        logger.error(f"Interval change error: {e}")
+
+@bot.callback_query_handler(func=lambda call: call.data == "ignore")
+def ignore_callback(call):
+    bot.answer_callback_query(call.id)
+
 # --- NEW: PERIODIC PROMO POST ---
 def periodic_promo():
-    """Har 3 daqiqada kanalga batafsil reklama postini chiqaradi"""
+    """Belgilangan intervalda kanalga batafsil reklama postini chiqaradi"""
     while True:
         try:
-            time.sleep(180) # 3 daqiqa (180 soniya)
+            time.sleep(PROMO_INTERVAL)
             if not PROMO_ENABLED:
                 continue
                 
@@ -430,7 +462,7 @@ def periodic_promo():
                 f"👉 @{bot_username}"
             )
             bot.send_message(SOURCE_CHANNEL, promo_text, parse_mode='HTML')
-            logger.info("📢 3 daqiqalik promo post yuborildi.")
+            logger.info(f"📢 {PROMO_INTERVAL} soniyalik promo post yuborildi.")
         except Exception as e:
             logger.error(f"Promo error: {e}")
 
