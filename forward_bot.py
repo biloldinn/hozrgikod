@@ -8,7 +8,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from telebot import types
 
 # --- KONFIGURATSIYA ---
-TOKEN = "8417577678:AAH6RXAvwsaEuhKSCq6AsC83tG5QBtd0aJk"
+# --- KONFIGURATSIYA ---
+TOKEN = "8580639697:AAFPv5TYWiWFXFxaMYQWPN7JzCwMUMYkVIQ"
 SOURCE_CHANNEL = "@TOSHKENTANGRENTAKSI"
 DESTINATION_CHANNEL = "@Uski_kur"  # Zakazlar va forwardlar shu yerga tushadi
 
@@ -56,8 +57,6 @@ def forward_logic(message):
         current_chat_username = f"@{chat.username}" if chat.username else None
         current_chat_id = str(chat.id)
         
-        logger.info(f"📩 Yangi xabar keldi. Chat: {current_chat_username or current_chat_id}")
-
         # SOURCE_CHANNEL bilan solishtirish (registrga qaramaslik uchun lower() ishlatamiz)
         is_source = False
         if current_chat_username and current_chat_username.lower() == SOURCE_CHANNEL.lower():
@@ -68,34 +67,48 @@ def forward_logic(message):
         if not is_source:
             return
 
+        logger.info(f"📩 Forward uchun xabar keldi. Chat: {current_chat_username or current_chat_id}")
+
         header = get_sender_info(message)
         separator = "─" * 15 + "\n"
         full_header = header + separator
-
-        if message.content_type == 'text':
-            bot.send_message(DESTINATION_CHANNEL, full_header + message.text, parse_mode='HTML')
-        elif message.content_type == 'photo':
-            bot.send_photo(DESTINATION_CHANNEL, message.photo[-1].file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
-        elif message.content_type == 'video':
-            bot.send_video(DESTINATION_CHANNEL, message.video.file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
-        elif message.content_type == 'voice':
-            bot.send_voice(DESTINATION_CHANNEL, message.voice.file_id, caption=full_header)
-        elif message.content_type == 'audio':
-            bot.send_audio(DESTINATION_CHANNEL, message.audio.file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
-        elif message.content_type == 'document':
-            bot.send_document(DESTINATION_CHANNEL, message.document.file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
         
-        logger.info(f"✅ Xabar ko'chirildi (Manzil: {DESTINATION_CHANNEL})")
+        sent_success = False
 
-        # --- Xabarni o'chirish logikasi ---
         try:
-            bot.delete_message(message.chat.id, message.message_id)
-            logger.info(f"🗑 Xabar manba kanaldan o'chirildi: {message.message_id}")
-        except Exception as del_e:
-            logger.error(f"❌ Xabarni o'chirishda xato: {del_e}")
+            if message.content_type == 'text':
+                bot.send_message(DESTINATION_CHANNEL, full_header + message.text, parse_mode='HTML')
+                sent_success = True
+            elif message.content_type == 'photo':
+                bot.send_photo(DESTINATION_CHANNEL, message.photo[-1].file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
+                sent_success = True
+            elif message.content_type == 'video':
+                bot.send_video(DESTINATION_CHANNEL, message.video.file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
+                sent_success = True
+            elif message.content_type == 'voice':
+                bot.send_voice(DESTINATION_CHANNEL, message.voice.file_id, caption=full_header)
+                sent_success = True
+            elif message.content_type == 'audio':
+                bot.send_audio(DESTINATION_CHANNEL, message.audio.file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
+                sent_success = True
+            elif message.content_type == 'document':
+                bot.send_document(DESTINATION_CHANNEL, message.document.file_id, caption=full_header + (message.caption or ""), parse_mode='HTML')
+                sent_success = True
+        except Exception as send_err:
+            logger.error(f"❌ Forward qilishda xatolik (Yuborilmadi): {send_err}")
+            return # Yuborilmadi, demak o'chirmaymiz
+
+        if sent_success:
+            logger.info(f"✅ Xabar ko'chirildi (Manzil: {DESTINATION_CHANNEL})")
+            # --- Xabarni o'chirish logikasi ---
+            try:
+                bot.delete_message(message.chat.id, message.message_id)
+                logger.info(f"🗑 Xabar manba kanaldan o'chirildi: {message.message_id}")
+            except Exception as del_e:
+                logger.error(f"❌ Xabarni o'chirishda xato: {del_e}")
 
     except Exception as e:
-        logger.error(f"❌ Forward xatosi: {e}")
+        logger.error(f"❌ Forward umbrella xatosi: {e}")
 
 # --- TAXI BOOKING FLOW ---
 def check_membership(user_id):
@@ -220,16 +233,20 @@ def handle_taxi_steps(message):
                     bot.send_message(DESTINATION_CHANNEL, order_text, parse_mode='HTML')
                     bot.send_location(DESTINATION_CHANNEL, message.location.latitude, message.location.longitude)
                     logger.info(f"✅ {order_type} buyurtmasi muvaffaqiyatli yuborildi.")
+                    
+                    # Foydalanuvchiga tasdiqlash (faqat muvaffaqiyatli bo'lsa)
+                    bot.send_message(user_id, "✅ <b>Buyurtmangiz qabul qilindi!</b>\nTez orada siz bilan bog'lanamiz. Raxmat!", parse_mode='HTML', reply_markup=get_main_keyboard())
+                    
+                    logger.info(f"✅ Yangi zakaz: {user_id}")
+                    del user_states[user_id]
+                    return True
+                    
                 except Exception as send_e:
                     logger.error(f"❌ {order_type} buyurtmasini yuborishda xato: {send_e}")
                     bot.send_message(user_id, "❌ Uzr, texnik sabablarga ko'ra buyurtmani guruhga yuborib bo'lmadi. Admin bilan bog'laning.")
-                
-                # Foydalanuvchiga tasdiqlash
-                bot.send_message(user_id, "✅ <b>Buyurtmangiz qabul qilindi!</b>\nTez orada siz bilan bog'lanamiz. Raxmat!", parse_mode='HTML', reply_markup=get_main_keyboard())
-                
-                logger.info(f"✅ Yangi zakaz: {user_id}")
-                del user_states[user_id]
-                return True
+                    # Xatolik bo'lsa ham state'ni tozalash yaxshi, foydalanuvchi qotib qolmasligi uchun
+                    del user_states[user_id] 
+                    return True
             else:
                 bot.send_message(user_id, "Iltimos, lokatsiyani yuborish tugmasini bosing yoki bekor qiling.", reply_markup=get_cancel_keyboard())
                 return True
