@@ -480,8 +480,8 @@ if __name__ == "__main__":
     if os.environ.get('RENDER_EXTERNAL_URL'):
         Thread(target=keep_awake, daemon=True).start()
     
-    # Promo threadni boshlash
-    Thread(target=periodic_promo, daemon=True).start()
+    # Promo threadni boshlash (O'CHIRILDI - User talabi bo'yicha)
+    # Thread(target=periodic_promo, daemon=True).start()
     
     # --- WEBHOOK'NI OCHIRISH (409 Conflict xatosini oldini olish uchun) ---
     try:
